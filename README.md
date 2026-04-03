@@ -1,8 +1,6 @@
 # xhttp
 
-HTTP/1.1 server implementation from scratch in Rust. No external dependencies — only the standard library.
-
-Built for learning purposes: understanding the HTTP protocol at the byte level and learning Rust through systems programming.
+HTTP/1.1 server implementation from scratch in Rust. No external dependencies, only the standard library.
 
 WORK IN PROGRESS :)
 
