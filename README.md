@@ -10,7 +10,7 @@ WORK IN PROGRESS :)
 - [x] Request parsing (line, headers)
 - [x] HTTP Responses
 - [ ] HTTP Body (request body with Content-Length)
-- [ ] Router with closures
+- [x] Router with closures
 - [ ] Static files + MIME types
 - [ ] Chunked Encoding
 - [ ] Binary Data

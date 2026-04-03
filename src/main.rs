@@ -1,10 +1,21 @@
 mod http;
+mod router;
 
 use std::io::Write;
 use std::net::TcpListener;
 use std::{collections::HashMap, io::Read};
 
 use http::{HttpRequest, HttpResponse};
+use router::Router;
+
+fn handle_ping(_req: &HttpRequest) -> HttpResponse {
+    HttpResponse {
+        status_code: 200,
+        reason: "OK".to_string(),
+        headers: HashMap::new(),
+        body: "Pong".to_string(),
+    }
+}
 
 fn main() {
     let listener = match TcpListener::bind("127.0.0.1:7878") {
@@ -13,6 +24,9 @@ fn main() {
     };
 
     println!("Server listening on http://127.0.0.1:7878");
+
+    let mut router = Router::new();
+    router.add_route("/ping", Box::new(handle_ping));
 
     for stream in listener.incoming() {
         let mut stream = match stream {
@@ -45,27 +59,14 @@ fn main() {
             }
         };
 
-        let response = match http_request.path.as_str() {
-            "/ping" => HttpResponse {
-                status_code: 200,
-                reason: "OK".to_string(),
-                headers: HashMap::new(),
-                body: "Pong".to_string(),
-            },
-            _ => HttpResponse {
-                status_code: 404,
-                reason: "Not Found".to_string(),
-                headers: HashMap::new(),
-                body: "Not Found".to_string(),
-            },
-        };
+        println!("{:?}", http_request);
+        println!("-----------------------");
+        println!("{:#?}", http_request);
+
+        let response = router.handle(&http_request);
 
         if let Err(e) = stream.write_all(response.serialize().as_bytes()) {
             eprint!("Failed to write to stream: {e}");
         }
-
-        println!("{:?}", http_request);
-        println!("-----------------------");
-        println!("{:#?}", http_request);
     }
 }
