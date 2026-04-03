@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub enum HttpMethod {
-    GET,
-    POST,
+    Get,
+    Post,
 }
 
+#[derive(Debug)]
 pub struct HttpRequest {
     pub method: HttpMethod,
     pub path: String,
@@ -12,11 +14,19 @@ pub struct HttpRequest {
     pub headers: HashMap<String, String>,
 }
 
+#[derive(Debug)]
+pub struct HttpResponse {
+    pub status_code: u16,
+    pub reason: String,
+    pub headers: HashMap<String, String>,
+    pub body: String,
+}
+
 impl HttpMethod {
     pub fn from_str(method: &str) -> Result<HttpMethod, String> {
         match method {
-            "GET" => Ok(HttpMethod::GET),
-            "POST" => Ok(HttpMethod::POST),
+            "GET" => Ok(HttpMethod::Get),
+            "POST" => Ok(HttpMethod::Post),
             _ => Err(format!("Unknown method: {method}")),
         }
     }
@@ -28,31 +38,22 @@ impl HttpRequest {
 
         // Request Line
         // e.g. "GET /hello HTTP/1.1"
-        let request_line = match lines.next() {
-            Some(m) => m,
-            None => return Err("Missing request line".to_string()),
-        };
+        let request_line = lines.next().ok_or("Missing request line".to_string())?;
 
         // ["GET", "/hello", "HTTP/1.1"]
         let mut parts = request_line.split_whitespace();
 
         // "GET"
-        let method = match parts.next() {
-            Some(m) => HttpMethod::from_str(m)?,
-            None => return Err("Missing method".to_string()),
-        };
+        let method = HttpMethod::from_str(parts.next().ok_or("Missing method".to_string())?)?;
 
         // "/hello"
-        let path = match parts.next() {
-            Some(p) => p,
-            None => return Err("Missing path".to_string()),
-        };
+        let path = parts.next().ok_or("Missing path".to_string())?.to_string();
 
         // "HTTP/1.1"
-        let version = match parts.next() {
-            Some(v) => v,
-            None => return Err("Missing version".to_string()),
-        };
+        let version = parts
+            .next()
+            .ok_or("Missing version".to_string())?
+            .to_string();
 
         let mut headers = HashMap::new();
 
@@ -61,26 +62,37 @@ impl HttpRequest {
                 break;
             };
 
-            let mut parts = line.splitn(2, ':');
+            let (key, value) = line
+                .split_once(":")
+                .ok_or(format!("Malformed header: {line}"))?;
 
-            let key = match parts.next() {
-                Some(k) => k.to_string(),
-                None => return Err("Malformed header: missing key".to_string()),
-            };
-
-            let value = match parts.next() {
-                Some(v) => v.trim().to_string(),
-                None => return Err("Malformed header: missing value".to_string()),
-            };
-
-            headers.insert(key, value);
+            headers.insert(key.to_string(), value.trim().to_string());
         }
 
         Ok(HttpRequest {
             method,
-            path: path.to_string(),
-            version: version.to_string(),
+            path,
+            version,
             headers,
         })
+    }
+}
+
+impl HttpResponse {
+    pub fn serialize(&self) -> String {
+        let mut response = format!(
+            "HTTP/1.1 {} {}\r\nContent-Length: {}\r\n",
+            self.status_code,
+            self.reason,
+            self.body.len()
+        );
+
+        for (key, value) in &self.headers {
+            response.push_str(&format!("{key}: {value}\r\n"));
+        }
+
+        response.push_str(&format!("\r\n{}", self.body));
+
+        response
     }
 }

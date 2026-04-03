@@ -1,9 +1,10 @@
 mod http;
 
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::TcpListener;
+use std::{collections::HashMap, io::Read};
 
-use http::HttpRequest;
+use http::{HttpRequest, HttpResponse};
 
 fn main() {
     let listener = match TcpListener::bind("127.0.0.1:7878") {
@@ -36,7 +37,7 @@ fn main() {
         println!("--- Request received ({bytes_read} bytes) ---");
         println!("{request}");
 
-        let _http_request = match HttpRequest::parse(&request) {
+        let http_request = match HttpRequest::parse(&request) {
             Ok(req) => req,
             Err(e) => {
                 eprint!("Failed to parse request: {e}");
@@ -44,18 +45,27 @@ fn main() {
             }
         };
 
-        // ----
-
-        let response = format!(
-            "{}\r\n{}\r\n\r\n{}",
-            "HTTP/1.1 200 OK", "Content-Length: 4", "Pong"
-        );
-
-        match stream.write_all(response.as_bytes()) {
-            Ok(()) => {}
-            Err(e) => {
-                eprint!("Failed to write to stream: {e}");
-            }
+        let response = match http_request.path.as_str() {
+            "/ping" => HttpResponse {
+                status_code: 200,
+                reason: "OK".to_string(),
+                headers: HashMap::new(),
+                body: "Pong".to_string(),
+            },
+            _ => HttpResponse {
+                status_code: 404,
+                reason: "Not Found".to_string(),
+                headers: HashMap::new(),
+                body: "Not Found".to_string(),
+            },
         };
+
+        if let Err(e) = stream.write_all(response.serialize().as_bytes()) {
+            eprint!("Failed to write to stream: {e}");
+        }
+
+        println!("{:?}", http_request);
+        println!("-----------------------");
+        println!("{:#?}", http_request);
     }
 }
