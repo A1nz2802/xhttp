@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
-pub enum HttpMethod {
-    Get,
-    Post,
-}
+use crate::http::method::HttpMethod;
 
 #[derive(Debug)]
 pub struct HttpRequest {
@@ -13,24 +9,6 @@ pub struct HttpRequest {
     pub version: String,
     pub headers: HashMap<String, String>,
     pub body: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct HttpResponse {
-    pub status_code: u16,
-    pub reason: String,
-    pub headers: HashMap<String, String>,
-    pub body: String,
-}
-
-impl HttpMethod {
-    pub fn from_str(method: &str) -> Result<HttpMethod, String> {
-        match method {
-            "GET" => Ok(HttpMethod::Get),
-            "POST" => Ok(HttpMethod::Post),
-            _ => Err(format!("Unknown method: {method}")),
-        }
-    }
 }
 
 impl HttpRequest {
@@ -87,24 +65,5 @@ impl HttpRequest {
                 Some(body.to_string())
             },
         })
-    }
-}
-
-impl HttpResponse {
-    pub fn serialize(&self) -> String {
-        let mut response = format!(
-            "HTTP/1.1 {} {}\r\nContent-Length: {}\r\n",
-            self.status_code,
-            self.reason,
-            self.body.len()
-        );
-
-        for (key, value) in &self.headers {
-            response.push_str(&format!("{key}: {value}\r\n"));
-        }
-
-        response.push_str(&format!("\r\n{}", self.body));
-
-        response
     }
 }

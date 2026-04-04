@@ -21,12 +21,7 @@ impl Router {
     pub fn handle(&self, request: &HttpRequest) -> HttpResponse {
         match self.routes.get(&request.path) {
             Some(handler) => handler(request),
-            None => HttpResponse {
-                status_code: 404,
-                reason: "Not Found".to_string(),
-                headers: HashMap::new(),
-                body: "Not Found".to_string(),
-            },
+            None => HttpResponse::not_found(),
         }
     }
 }

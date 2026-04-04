@@ -1,34 +1,15 @@
+mod handlers;
 mod http;
 mod router;
 
+use std::io::Read;
 use std::io::Write;
 use std::net::TcpListener;
-use std::{collections::HashMap, io::Read};
 
-use http::{HttpRequest, HttpResponse};
 use router::Router;
 
-fn handle_ping(_req: &HttpRequest) -> HttpResponse {
-    HttpResponse {
-        status_code: 200,
-        reason: "OK".to_string(),
-        headers: HashMap::new(),
-        body: "Pong".to_string(),
-    }
-}
-
-fn handle_echo(req: &HttpRequest) -> HttpResponse {
-    let body = match &req.body {
-        Some(b) => b.clone(),
-        None => "No body received".to_string(),
-    };
-    HttpResponse {
-        status_code: 200,
-        reason: "OK".to_string(),
-        headers: HashMap::new(),
-        body,
-    }
-}
+use handlers::{handle_echo, handle_ping};
+use http::HttpRequest;
 
 fn main() {
     let listener = match TcpListener::bind("127.0.0.1:7878") {
