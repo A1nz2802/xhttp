@@ -9,7 +9,7 @@ WORK IN PROGRESS :)
 - [x] HTTP Streams / TCP
 - [x] Request parsing (line, headers)
 - [x] HTTP Responses
-- [ ] HTTP Body (request body with Content-Length)
+- [x] HTTP Body (request body with Content-Length)
 - [x] Router with closures
 - [ ] Static files + MIME types
 - [ ] Chunked Encoding

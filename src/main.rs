@@ -17,6 +17,19 @@ fn handle_ping(_req: &HttpRequest) -> HttpResponse {
     }
 }
 
+fn handle_echo(req: &HttpRequest) -> HttpResponse {
+    let body = match &req.body {
+        Some(b) => b.clone(),
+        None => "No body received".to_string(),
+    };
+    HttpResponse {
+        status_code: 200,
+        reason: "OK".to_string(),
+        headers: HashMap::new(),
+        body,
+    }
+}
+
 fn main() {
     let listener = match TcpListener::bind("127.0.0.1:7878") {
         Ok(listener) => listener,
@@ -27,6 +40,7 @@ fn main() {
 
     let mut router = Router::new();
     router.add_route("/ping", Box::new(handle_ping));
+    router.add_route("/echo", Box::new(handle_echo));
 
     for stream in listener.incoming() {
         let mut stream = match stream {

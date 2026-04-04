@@ -12,6 +12,7 @@ pub struct HttpRequest {
     pub path: String,
     pub version: String,
     pub headers: HashMap<String, String>,
+    pub body: Option<String>,
 }
 
 #[derive(Debug)]
@@ -34,11 +35,17 @@ impl HttpMethod {
 
 impl HttpRequest {
     pub fn parse(raw: &str) -> Result<HttpRequest, String> {
-        let mut lines = raw.lines();
+        let (head, body) = raw
+            .split_once("\r\n\r\n")
+            .ok_or("Malformed request".to_string())?;
+
+        let mut head_lines = head.lines();
 
         // Request Line
         // e.g. "GET /hello HTTP/1.1"
-        let request_line = lines.next().ok_or("Missing request line".to_string())?;
+        let request_line = head_lines
+            .next()
+            .ok_or("Missing request line".to_string())?;
 
         // ["GET", "/hello", "HTTP/1.1"]
         let mut parts = request_line.split_whitespace();
@@ -57,7 +64,7 @@ impl HttpRequest {
 
         let mut headers = HashMap::new();
 
-        for line in lines {
+        for line in head_lines {
             if line.is_empty() {
                 break;
             };
@@ -74,6 +81,11 @@ impl HttpRequest {
             path,
             version,
             headers,
+            body: if body.is_empty() {
+                None
+            } else {
+                Some(body.to_string())
+            },
         })
     }
 }
