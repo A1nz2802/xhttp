@@ -8,7 +8,7 @@ use std::net::TcpListener;
 
 use router::Router;
 
-use handlers::{handle_echo, handle_ping};
+use handlers::{handle_echo, handle_ping, handle_stream};
 use http::HttpRequest;
 
 fn main() {
@@ -22,6 +22,7 @@ fn main() {
     let mut router = Router::new();
     router.add_route("/ping", Box::new(handle_ping));
     router.add_route("/echo", Box::new(handle_echo));
+    router.add_route("/stream", Box::new(handle_stream));
 
     for stream in listener.incoming() {
         let mut stream = match stream {

@@ -12,7 +12,7 @@ WORK IN PROGRESS :)
 - [x] HTTP Body (request body with Content-Length)
 - [x] Router with closures
 - [x] Static files + MIME types
-- [ ] Chunked Encoding
+- [x] Chunked Encoding
 - [ ] Binary Data
 - [ ] Thread pool (concurrency)
 - [ ] Better error handling

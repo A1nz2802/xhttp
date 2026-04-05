@@ -34,11 +34,17 @@ pub fn handle_static(req: &HttpRequest) -> HttpResponse {
     headers.insert("Content-Type".to_string(), mime.to_string());
 
     HttpResponse {
+        chunked: false,
         status_code: 200,
         reason: "OK".to_string(),
         headers,
         body: content,
     }
+}
+
+pub fn handle_stream(_req: &HttpRequest) -> HttpResponse {
+    let body = "Hello from chunked stream! ".repeat(5);
+    HttpResponse::ok_chunked(&body)
 }
 
 fn get_mime_type(ext: &str) -> &str {
