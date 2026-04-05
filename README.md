@@ -11,7 +11,7 @@ WORK IN PROGRESS :)
 - [x] HTTP Responses
 - [x] HTTP Body (request body with Content-Length)
 - [x] Router with closures
-- [ ] Static files + MIME types
+- [x] Static files + MIME types
 - [ ] Chunked Encoding
 - [ ] Binary Data
 - [ ] Thread pool (concurrency)
