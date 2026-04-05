@@ -1,4 +1,7 @@
-use crate::http::{HttpRequest, HttpResponse};
+use crate::{
+    handlers::handle_static,
+    http::{HttpRequest, HttpResponse},
+};
 use std::collections::HashMap;
 
 type Handler = Box<dyn Fn(&HttpRequest) -> HttpResponse>;
@@ -21,7 +24,7 @@ impl Router {
     pub fn handle(&self, request: &HttpRequest) -> HttpResponse {
         match self.routes.get(&request.path) {
             Some(handler) => handler(request),
-            None => HttpResponse::not_found(),
+            None => handle_static(request),
         }
     }
 }
