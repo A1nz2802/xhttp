@@ -13,6 +13,6 @@ WORK IN PROGRESS :)
 - [x] Router with closures
 - [x] Static files + MIME types
 - [x] Chunked Encoding
-- [ ] Binary Data
+- [x] Binary Data
 - [ ] Thread pool (concurrency)
 - [ ] Better error handling

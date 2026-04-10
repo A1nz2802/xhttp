@@ -61,7 +61,7 @@ fn main() {
 
         let response = router.handle(&http_request);
 
-        if let Err(e) = stream.write_all(response.serialize().as_bytes()) {
+        if let Err(e) = stream.write_all(&response.serialize()) {
             eprint!("Failed to write to stream: {e}");
         }
     }

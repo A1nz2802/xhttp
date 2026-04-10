@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::read_to_string};
+use std::{collections::HashMap, fs::read};
 
 use crate::http::{HttpRequest, HttpResponse};
 
@@ -25,7 +25,7 @@ pub fn handle_static(req: &HttpRequest) -> HttpResponse {
 
     let file_path = format!("public{}", req.path);
 
-    let content = match read_to_string(file_path) {
+    let content = match read(file_path) {
         Ok(c) => c,
         Err(_) => return HttpResponse::not_found(),
     };
@@ -35,6 +35,7 @@ pub fn handle_static(req: &HttpRequest) -> HttpResponse {
 
     HttpResponse {
         chunked: false,
+        version: "HTTP/1.1".to_string(),
         status_code: 200,
         reason: "OK".to_string(),
         headers,
@@ -52,6 +53,9 @@ fn get_mime_type(ext: &str) -> &str {
         "html" => "text/html",
         "css" => "text/css",
         "js" => "application/javascript",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
         _ => "application/octet-stream",
     }
 }
