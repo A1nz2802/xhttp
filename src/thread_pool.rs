@@ -7,12 +7,12 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub struct Worker {
     id: usize,
-    join_handle: JoinHandle<()>,
+    join_handle: Option<JoinHandle<()>>,
 }
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>,
+    sender: Option<mpsc::Sender<Job>>,
 }
 
 impl ThreadPool {
@@ -51,10 +51,16 @@ impl ThreadPool {
                 }
             });
 
-            workers.push(Worker { id, join_handle });
+            workers.push(Worker {
+                id,
+                join_handle: Some(join_handle),
+            });
         }
 
-        ThreadPool { workers, sender }
+        ThreadPool {
+            workers,
+            sender: Some(sender),
+        }
     }
 
     pub fn execute<F>(&self, f: F)
@@ -63,8 +69,32 @@ impl ThreadPool {
     {
         let job: Job = Box::new(f);
 
-        if let Err(e) = self.sender.send(job) {
+        let sender = match self.sender.as_ref() {
+            Some(s) => s,
+            None => {
+                eprintln!("Cannot execute job: thread pool is shutting down");
+                return;
+            }
+        };
+
+        if let Err(e) = sender.send(job) {
             eprintln!("Failed to send job to thread pool: {e}");
+        }
+    }
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        drop(self.sender.take());
+
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            if let Some(handle) = worker.join_handle.take() {
+                if let Err(e) = handle.join() {
+                    eprintln!("Worker {} panicked during shutdown: {:?}", worker.id, e);
+                }
+            }
         }
     }
 }
