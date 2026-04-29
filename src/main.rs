@@ -11,7 +11,7 @@ use std::sync::Arc;
 use router::Router;
 
 use handlers::{handle_echo, handle_ping, handle_stream};
-use http::HttpRequest;
+use http::{HttpRequest, HttpResponse};
 
 fn main() {
     let listener = match TcpListener::bind("127.0.0.1:7878") {
@@ -56,22 +56,16 @@ fn main() {
             println!("--- Request received ({bytes_read} bytes) ---");
             println!("{request}");
 
-            let http_request = match HttpRequest::parse(&request) {
-                Ok(req) => req,
+            let response = match HttpRequest::parse(&request) {
+                Ok(http_request) => router.handle(&http_request),
                 Err(e) => {
-                    eprint!("Failed to parse request: {e}");
-                    return;
+                    eprintln!("Failed to parse request: {e}");
+                    HttpResponse::bad_request(&e)
                 }
             };
 
-            println!("{:?}", http_request);
-            println!("-----------------------");
-            println!("{:#?}", http_request);
-
-            let response = router.handle(&http_request);
-
             if let Err(e) = stream.write_all(&response.serialize()) {
-                eprint!("Failed to write to stream: {e}");
+                eprintln!("Failed to write to stream: {e}");
             }
         });
     }

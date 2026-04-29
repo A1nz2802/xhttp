@@ -103,4 +103,26 @@ impl HttpResponse {
             body: "Not Found".as_bytes().to_vec(),
         }
     }
+
+    pub fn bad_request(message: &str) -> HttpResponse {
+        HttpResponse {
+            chunked: false,
+            version: "HTTP/1.1".to_string(),
+            status_code: 400,
+            reason: "Bad Request".to_string(),
+            headers: HashMap::new(),
+            body: message.as_bytes().to_vec(),
+        }
+    }
+
+    pub fn internal_server_error() -> HttpResponse {
+        HttpResponse {
+            chunked: false,
+            version: "HTTP/1.1".to_string(),
+            status_code: 500,
+            reason: "Internal Server Error".to_string(),
+            headers: HashMap::new(),
+            body: "Internal Server Error".as_bytes().to_vec(),
+        }
+    }
 }
