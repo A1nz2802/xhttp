@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Read};
 
 use crate::http::method::HttpMethod;
 
@@ -12,6 +13,51 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
+    pub fn read_from<R: Read>(stream: &mut R) -> Result<String, String> {
+        let mut reader = BufReader::new(stream);
+        let mut buffer: Vec<u8> = Vec::new();
+
+        loop {
+            let mut line: Vec<u8> = Vec::new();
+            let bytes_read = reader
+                .read_until(b'\n', &mut line)
+                .map_err(|e| format!("Failed to read from stream: {e}"))?;
+
+            if bytes_read == 0 {
+                return Err("Connection closed before headers were complete".to_string());
+            }
+
+            buffer.extend_from_slice(&line);
+
+            if line == b"\r\n" {
+                break;
+            }
+        }
+
+        let head_str = String::from_utf8_lossy(&buffer);
+        let content_length: usize = head_str
+            .lines()
+            .find_map(|line| {
+                let (key, value) = line.split_once(':')?;
+                if key.trim().eq_ignore_ascii_case("Content-Length") {
+                    value.trim().parse().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+
+        if content_length > 0 {
+            let mut body = vec![0u8; content_length];
+            reader
+                .read_exact(&mut body)
+                .map_err(|e| format!("Failed to read body: {e}"))?;
+            buffer.extend_from_slice(&body);
+        }
+
+        Ok(String::from_utf8_lossy(&buffer).into_owned())
+    }
+
     pub fn parse(raw: &str) -> Result<HttpRequest, String> {
         let (head, body) = raw
             .split_once("\r\n\r\n")

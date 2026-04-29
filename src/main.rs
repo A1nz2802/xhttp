@@ -3,7 +3,6 @@ mod http;
 mod router;
 mod thread_pool;
 
-use std::io::Read;
 use std::io::Write;
 use std::net::TcpListener;
 use std::sync::Arc;
@@ -42,21 +41,18 @@ fn main() {
         let router = Arc::clone(&router);
 
         pool.execute(move || {
-            let mut buffer = [0u8; 1024];
-
-            let bytes_read = match stream.read(&mut buffer) {
-                Ok(n) => n,
+            let raw = match HttpRequest::read_from(&mut stream) {
+                Ok(r) => r,
                 Err(e) => {
-                    eprintln!("Failed to read from stream: {e}");
+                    eprintln!("Failed to read request: {e}");
                     return;
                 }
             };
 
-            let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-            println!("--- Request received ({bytes_read} bytes) ---");
-            println!("{request}");
+            println!("--- Request received ({} bytes) ---", raw.len());
+            println!("{raw}");
 
-            let response = match HttpRequest::parse(&request) {
+            let response = match HttpRequest::parse(&raw) {
                 Ok(http_request) => router.handle(&http_request),
                 Err(e) => {
                     eprintln!("Failed to parse request: {e}");
