@@ -1,3 +1,5 @@
+//! Built-in request handlers used by the router.
+
 use std::{collections::HashMap, fs::read};
 
 use crate::http::{HttpRequest, HttpResponse};
@@ -15,6 +17,13 @@ pub fn handle_echo(req: &HttpRequest) -> HttpResponse {
     HttpResponse::ok(&body)
 }
 
+/// Serves a file from the `public/` directory based on the request
+/// path. Used as the fallback when no explicit route matches.
+///
+/// The path is derived directly from the request — a real server would
+/// need to canonicalize it and reject traversal attempts (`..`) to
+/// avoid serving files outside `public/`. This implementation trusts
+/// the input.
 pub fn handle_static(req: &HttpRequest) -> HttpResponse {
     let ext = match req.path.rsplit_once('.') {
         Some((_, e)) => e,
@@ -43,6 +52,8 @@ pub fn handle_static(req: &HttpRequest) -> HttpResponse {
     }
 }
 
+/// Demonstrates chunked transfer encoding by sending a fixed string in
+/// pieces. Useful as a smoke test for the chunked serializer.
 pub fn handle_stream(_req: &HttpRequest) -> HttpResponse {
     let body = "Hello from chunked stream! ".repeat(5);
     HttpResponse::ok_chunked(&body)
@@ -56,6 +67,8 @@ fn get_mime_type(ext: &str) -> &str {
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
         "gif" => "image/gif",
+        // Catch-all for unknown types. Browsers will treat this as a
+        // download rather than risking incorrect rendering.
         _ => "application/octet-stream",
     }
 }

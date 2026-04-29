@@ -1,3 +1,9 @@
+//! HTTP request methods.
+//!
+//! Only the methods actively used by this server are modeled. Any other
+//! verb the client sends is rejected at parse time, surfaced to the
+//! caller as a `400 Bad Request`.
+
 #[derive(Debug)]
 pub enum HttpMethod {
     Get,
