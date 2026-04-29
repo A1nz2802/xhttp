@@ -68,3 +68,59 @@ impl ThreadPool {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Barrier;
+    use std::time::Duration;
+
+    #[test]
+    fn executes_a_single_job() {
+        let pool = ThreadPool::new(2);
+        let counter = Arc::new(Mutex::new(0));
+
+        let counter_clone = Arc::clone(&counter);
+        pool.execute(move || {
+            *counter_clone.lock().unwrap() += 1;
+        });
+
+        thread::sleep(Duration::from_millis(100));
+
+        assert_eq!(*counter.lock().unwrap(), 1);
+    }
+
+    #[test]
+    fn executes_many_jobs() {
+        let pool = ThreadPool::new(2);
+        let counter = Arc::new(Mutex::new(0));
+
+        for _ in 0..10 {
+            let counter_clone = Arc::clone(&counter);
+            pool.execute(move || {
+                *counter_clone.lock().unwrap() += 1;
+            });
+        }
+
+        thread::sleep(Duration::from_millis(200));
+
+        assert_eq!(*counter.lock().unwrap(), 10);
+    }
+
+    #[test]
+    fn jobs_run_in_parallel() {
+        let pool_size = 4;
+        let pool = ThreadPool::new(pool_size);
+
+        let barrier = Arc::new(Barrier::new(pool_size + 1));
+
+        for _ in 0..pool_size {
+            let barrier = Arc::clone(&barrier);
+            pool.execute(move || {
+                barrier.wait();
+            });
+        }
+
+        barrier.wait();
+    }
+}
