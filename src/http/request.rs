@@ -13,6 +13,21 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
+    pub fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v.as_str())
+    }
+
+    pub fn wants_close(&self) -> bool {
+        match self.header("Connection") {
+            Some(v) if v.eq_ignore_ascii_case("close") => true,
+            Some(v) if v.eq_ignore_ascii_case("keep-alive") => false,
+            _ => self.version == "HTTP/1.0",
+        }
+    }
+
     pub fn read_from<R: Read>(stream: &mut R) -> Result<String, String> {
         let mut reader = BufReader::new(stream);
         let mut buffer: Vec<u8> = Vec::new();

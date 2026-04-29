@@ -6,6 +6,7 @@ mod thread_pool;
 use std::io::Write;
 use std::net::TcpListener;
 use std::sync::Arc;
+use std::time::Duration;
 
 use router::Router;
 
@@ -41,27 +42,43 @@ fn main() {
         let router = Arc::clone(&router);
 
         pool.execute(move || {
-            let raw = match HttpRequest::read_from(&mut stream) {
-                Ok(r) => r,
-                Err(e) => {
-                    eprintln!("Failed to read request: {e}");
-                    return;
+            if let Err(e) = stream.set_read_timeout(Some(Duration::from_secs(5))) {
+                eprintln!("Failed to set read timeout: {e}");
+                return;
+            }
+
+            loop {
+                let raw = match HttpRequest::read_from(&mut stream) {
+                    Ok(r) => r,
+                    Err(_) => break,
+                };
+
+                println!("--- Request received ({} bytes) ---", raw.len());
+
+                let (mut response, close) = match HttpRequest::parse(&raw) {
+                    Ok(req) => {
+                        let close = req.wants_close();
+                        (router.handle(&req), close)
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to parse request: {e}");
+                        (HttpResponse::bad_request(&e), true)
+                    }
+                };
+
+                let connection_value = if close { "close" } else { "keep-alive" };
+                response
+                    .headers
+                    .insert("Connection".to_string(), connection_value.to_string());
+
+                if let Err(e) = stream.write_all(&response.serialize()) {
+                    eprintln!("Failed to write to stream: {e}");
+                    break;
                 }
-            };
 
-            println!("--- Request received ({} bytes) ---", raw.len());
-            println!("{raw}");
-
-            let response = match HttpRequest::parse(&raw) {
-                Ok(http_request) => router.handle(&http_request),
-                Err(e) => {
-                    eprintln!("Failed to parse request: {e}");
-                    HttpResponse::bad_request(&e)
+                if close {
+                    break;
                 }
-            };
-
-            if let Err(e) = stream.write_all(&response.serialize()) {
-                eprintln!("Failed to write to stream: {e}");
             }
         });
     }
