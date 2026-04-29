@@ -1,10 +1,12 @@
 mod handlers;
 mod http;
 mod router;
+mod thread_pool;
 
 use std::io::Read;
 use std::io::Write;
 use std::net::TcpListener;
+use std::sync::Arc;
 
 use router::Router;
 
@@ -20,9 +22,13 @@ fn main() {
     println!("Server listening on http://127.0.0.1:7878");
 
     let mut router = Router::new();
+
     router.add_route("/ping", Box::new(handle_ping));
     router.add_route("/echo", Box::new(handle_echo));
     router.add_route("/stream", Box::new(handle_stream));
+
+    let pool = thread_pool::ThreadPool::new(4);
+    let router = Arc::new(router);
 
     for stream in listener.incoming() {
         let mut stream = match stream {
@@ -33,36 +39,40 @@ fn main() {
             }
         };
 
-        let mut buffer = [0u8; 1024];
+        let router = Arc::clone(&router);
 
-        let bytes_read = match stream.read(&mut buffer) {
-            Ok(n) => n,
-            Err(e) => {
-                eprintln!("Failed to read from stream: {e}");
-                continue;
+        pool.execute(move || {
+            let mut buffer = [0u8; 1024];
+
+            let bytes_read = match stream.read(&mut buffer) {
+                Ok(n) => n,
+                Err(e) => {
+                    eprintln!("Failed to read from stream: {e}");
+                    return;
+                }
+            };
+
+            let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+            println!("--- Request received ({bytes_read} bytes) ---");
+            println!("{request}");
+
+            let http_request = match HttpRequest::parse(&request) {
+                Ok(req) => req,
+                Err(e) => {
+                    eprint!("Failed to parse request: {e}");
+                    return;
+                }
+            };
+
+            println!("{:?}", http_request);
+            println!("-----------------------");
+            println!("{:#?}", http_request);
+
+            let response = router.handle(&http_request);
+
+            if let Err(e) = stream.write_all(&response.serialize()) {
+                eprint!("Failed to write to stream: {e}");
             }
-        };
-
-        let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-        println!("--- Request received ({bytes_read} bytes) ---");
-        println!("{request}");
-
-        let http_request = match HttpRequest::parse(&request) {
-            Ok(req) => req,
-            Err(e) => {
-                eprint!("Failed to parse request: {e}");
-                continue;
-            }
-        };
-
-        println!("{:?}", http_request);
-        println!("-----------------------");
-        println!("{:#?}", http_request);
-
-        let response = router.handle(&http_request);
-
-        if let Err(e) = stream.write_all(&response.serialize()) {
-            eprint!("Failed to write to stream: {e}");
-        }
+        });
     }
 }

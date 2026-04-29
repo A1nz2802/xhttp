@@ -4,7 +4,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
-type Handler = Box<dyn Fn(&HttpRequest) -> HttpResponse>;
+type Handler = Box<dyn Fn(&HttpRequest) -> HttpResponse + Send + Sync>;
 
 pub struct Router {
     routes: HashMap<String, Handler>,
